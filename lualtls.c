@@ -16,125 +16,133 @@
 
 #include <tls.h>
 
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+#define TLS_CONFIGHANDLE	"TLS config"
+#define	TLS_CONTEXTHANDLE	"TLS context"
 
 static int
 l_config_new(lua_State *l)
 {
-	struct tls_config *config;
+	struct tls_config **config;
 
-	if ((config = tls_config_new()) == NULL)
-		return luaL_error(l, "ltls:  failed to create a config");
+	config = lua_newuserdata(l, sizeof *config);
+	luaL_getmetatable(l, TLS_CONFIGHANDLE);
+	lua_setmetatable(l, -2);
+	if ((*config = tls_config_new()) == NULL)
+		return luaL_error(l, "ltls: failed to create a config");
 
-	lua_pushlightuserdata(l, config);
 	return 1;
+}
+
+static int
+l_set_ciphers(lua_State *l)
+{
+	struct tls_config	*config, **pc;
+	const char		*ciphers;
+	int			 r;
+
+	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	config = *pc;
+	ciphers = luaL_checkstring(l, 2);
+	r = tls_config_set_ciphers(config, ciphers);
+	lua_pushboolean(l, r == 0);
+	if (r)
+		lua_pushstring(l, "ltls: failed to set ciphers");
+
+	return r == 0 ? 1 : 2;
+}
+
+static int
+l_config_gc(lua_State *l)
+{
+	struct tls_config *config, **pc;
+
+	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	config = *pc;
+	tls_config_free(config);
+	return 0;	
 }
 
 static int
 l_client(lua_State *l)
 {
-	struct tls *ctx;
+	struct tls **ctx;
 
-	if ((ctx = tls_client()) == NULL)
+	ctx = lua_newuserdata(l, sizeof *ctx);
+	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
+	lua_setmetatable(l, -2);
+	if ((*ctx = tls_client()) == NULL)
 		return luaL_error(l, "ltls: failed to create client context");
 
-	lua_pushlightuserdata(l, ctx);
 	return 1;
 }
 
 static int
 l_configure(lua_State *l)
 {
-	struct tls_config	*config;
-	struct tls		*ctx;
+	struct tls_config	*config, **pc;
+	struct tls		*ctx, **pctx;
+	int			 r;
 
-	luaL_checktype(l, 1, LUA_TLIGHTUSERDATA);
-	luaL_checktype(l, 2, LUA_TLIGHTUSERDATA);
-
-	if ((config = lua_touserdata(l, 1)) == NULL) {
-		lua_pushboolean(l, 0);
-		lua_pushstring(l, "Invalid config");
-		return 2;
-	}
-
-	if ((ctx = lua_touserdata(l, 2)) == NULL)
-		return luaL_error(l, "ltls: Invalid context");
-
-	if (tls_configure(ctx, config) != 0) {
-		lua_pushboolean(l, 0);
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	pc = luaL_checkudata(l, 2, TLS_CONFIGHANDLE);
+	config = *pc;
+	ctx = *pctx;
+	r = tls_configure(ctx, config);
+	lua_pushboolean(l , r == 0);
+	if (r)
 		lua_pushstring(l, tls_error(ctx));
-		return 2;
 
-	} else {
-		lua_pushboolean(l, 1);
-		return  1;
-	}
+	return r == 0 ? 1 : 2;
 }
 
 static int
 l_connect(lua_State *l)
 {
-	struct tls	*ctx;
+	struct tls	*ctx, **pctx;
 	const char	*host, *port;
+	int		 r;
 
-	luaL_checktype(l, 1, LUA_TLIGHTUSERDATA);
-	if ((ctx = lua_touserdata(l, 1)) == NULL) {
-		lua_pushboolean(l, 0);
-		lua_pushstring(l, "Invalid context");
-		return 2;
-	}
-
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	ctx = *pctx;
 	host = luaL_checkstring(l, 2);
 	port = luaL_checkstring(l, 3);
-
-	if (tls_connect(ctx, host, port) != 0) {
-		lua_pushboolean(l, 0);
+	r = tls_connect(ctx, host, port);
+	lua_pushboolean(l, r == 0);
+	if (r)
 		lua_pushstring(l, tls_error(ctx));
-		return 2;
-	} else {
-		lua_pushboolean(l, 1);
-		return 1;
-	}
+
+	return r == 0 ? 1 : 2;
 }
 
 static int
 l_close(lua_State *l)
 {
-	struct tls *ctx;
+	struct tls	*ctx, **pctx;
+	int		 r;
 
-	luaL_checktype(l, 1, LUA_TLIGHTUSERDATA);
-	if ((ctx = lua_touserdata(l, 1)) == NULL) {
-		lua_pushboolean(l, 0);
-		lua_pushstring(l, "Invalid context");
-		return 2;
-	}
-
-	if (tls_close(ctx) != 0) {
-		lua_pushboolean(l, 0);
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	ctx = *pctx;
+	r = tls_close(ctx);
+	lua_pushboolean(l, r == 0);
+	if (r)
 		lua_pushstring(l, tls_error(ctx));
-		return 2;
-	} else {
-		lua_pushboolean(l, 1);
-		return 1;
-	}
+
+	return r == 0 ? 1 : 2;
 }
 
 static int
-l_free(lua_State *l)
+l_context_gc(lua_State *l)
 {
-	struct tls *ctx;
+	struct tls *ctx, **pctx;
 
-	luaL_checktype(l, 1, LUA_TLIGHTUSERDATA);
-	if ((ctx = lua_touserdata(l, 1)) == NULL) {
-		lua_pushboolean(l, 0);
-		lua_pushstring(l, "Invalid context");
-		return 2;
-	}
-
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	ctx = *pctx;
 	tls_free(ctx);
-	return 0;
+	return 0;	
 }
 
 int
@@ -143,10 +151,20 @@ luaopen_ltls(lua_State *l)
 	struct luaL_Reg ltls[] = {
 		{"config_new", l_config_new},
 		{"client", l_client},
+		{NULL, NULL}
+	};
+
+	struct luaL_Reg config_methods[] = {
+		{"set_ciphers", l_set_ciphers},
+		{"__gc", l_config_gc},
+		{NULL, NULL}
+	};
+
+	struct luaL_Reg context_methods[] = {
 		{"configure", l_configure},
 		{"connect", l_connect},
 		{"close", l_close},
-		{"free", l_free},
+		{"__gc", l_context_gc},
 		{NULL, NULL}
 	};
 
@@ -154,5 +172,17 @@ luaopen_ltls(lua_State *l)
 		return luaL_error(l, "ltls: failed to initialize library");
 
 	luaL_newlib(l, ltls);
+	luaL_newmetatable(l, TLS_CONFIGHANDLE);
+	lua_pushvalue(l, -1);
+	lua_setfield(l, -2, "__index");
+	luaL_setfuncs(l, config_methods, 0);
+	lua_pop(l, 1);
+
+	luaL_newmetatable(l, TLS_CONTEXTHANDLE);
+	lua_pushvalue(l, -1);
+	lua_setfield(l, -2, "__index");
+	luaL_setfuncs(l, context_methods, 0);
+	lua_pop(l, 1);
+
 	return 1;
 }
