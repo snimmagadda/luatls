@@ -26,7 +26,7 @@ l_config_new(lua_State *l)
 	struct tls_config *config;
 
 	if ((config = tls_config_new()) == NULL)
-		luaL_error(l, "ltls:  failed to create a config");
+		return luaL_error(l, "ltls:  failed to create a config");
 
 	lua_pushlightuserdata(l, config);
 	return 1;
@@ -38,7 +38,7 @@ l_client(lua_State *l)
 	struct tls *ctx;
 
 	if ((ctx = tls_client()) == NULL)
-		luaL_error(l, "ltls: failed to create client context");
+		return luaL_error(l, "ltls: failed to create client context");
 
 	lua_pushlightuserdata(l, ctx);
 	return 1;
@@ -60,7 +60,7 @@ l_configure(lua_State *l)
 	}
 
 	if ((ctx = lua_touserdata(l, 2)) == NULL)
-		luaL_error(l, "ltls: Invalid context");
+		return luaL_error(l, "ltls: Invalid context");
 
 	if (tls_configure(ctx, config) != 0) {
 		lua_pushboolean(l, 0);
