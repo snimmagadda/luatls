@@ -56,6 +56,28 @@ l_set_ciphers(lua_State *l)
 }
 
 static int
+l_noverifycert(lua_State *l)
+{
+	struct tls_config *config, **pc;
+
+	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	config = *pc;
+	tls_config_insecure_noverifycert(config);
+	return 0;	
+}
+
+static int
+l_noverifyname(lua_State *l)
+{
+	struct tls_config *config, **pc;
+
+	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	config = *pc;
+	tls_config_insecure_noverifyname(config);
+	return 0;	
+}
+
+static int
 l_config_gc(lua_State *l)
 {
 	struct tls_config *config, **pc;
@@ -156,6 +178,8 @@ luaopen_ltls(lua_State *l)
 
 	struct luaL_Reg config_methods[] = {
 		{"set_ciphers", l_set_ciphers},
+		{"noverifycert", l_noverifycert},
+		{"noverifyname", l_noverifyname},
 		{"__gc", l_config_gc},
 		{NULL, NULL}
 	};
