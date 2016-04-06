@@ -63,7 +63,7 @@ l_noverifycert(lua_State *l)
 	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
 	config = *pc;
 	tls_config_insecure_noverifycert(config);
-	return 0;	
+	return 0;
 }
 
 static int
@@ -74,7 +74,7 @@ l_noverifyname(lua_State *l)
 	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
 	config = *pc;
 	tls_config_insecure_noverifyname(config);
-	return 0;	
+	return 0;
 }
 
 static int
@@ -85,7 +85,7 @@ l_config_gc(lua_State *l)
 	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
 	config = *pc;
 	tls_config_free(config);
-	return 0;	
+	return 0;
 }
 
 static int
@@ -172,6 +172,31 @@ again:
 }
 
 static int
+l_write(lua_State *l)
+{
+	struct tls	*ctx, **pctx;
+	const char	*b;
+	size_t		 len;
+	int		 r;
+
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	ctx = *pctx;
+	b = luaL_checklstring(l, 2, &len);
+again:
+	switch ((r = tls_write(ctx, b, len))) {
+	case TLS_WANT_POLLIN:
+	case TLS_WANT_POLLOUT:
+		goto again;	/* XXX just the blocking mode for now */
+	}
+
+	lua_pushboolean(l, r == 0);
+	if (r == -1)
+		lua_pushstring(l, tls_error(ctx));
+
+	return r == 0 ? 1 : 2;
+}
+
+static int
 l_close(lua_State *l)
 {
 	struct tls	*ctx, **pctx;
@@ -195,7 +220,7 @@ l_context_gc(lua_State *l)
 	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	ctx = *pctx;
 	tls_free(ctx);
-	return 0;	
+	return 0;
 }
 
 int
@@ -219,6 +244,7 @@ luaopen_ltls(lua_State *l)
 		{"configure", l_configure},
 		{"connect", l_connect},
 		{"read", l_read},
+		{"write", l_write},
 		{"close", l_close},
 		{"__gc", l_context_gc},
 		{NULL, NULL}
