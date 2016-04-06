@@ -153,14 +153,22 @@ l_read(lua_State *l)
 	ctx = *pctx;
 	bufsz = luaL_checkinteger(l, 2);
 	p = luaL_buffinitsize(l, &b, bufsz);
-	r = tls_read(ctx, p, bufsz);
-	luaL_addsize(&b, r);
-	lua_pushinteger(l, r);
-	luaL_pushresult(&b);
-	if (r == -1)
-		lua_pushstring(l, tls_error(ctx));
+again:
+	switch ((r = tls_read(ctx, p, bufsz))) {
+	case TLS_WANT_POLLIN:
+	case TLS_WANT_POLLOUT:
+		goto again;	/* XXX just the blocking mode for now */
+	}
 
-	return r != -1 ? 2 : 3;
+	if (r == -1) {
+		lua_pushnil(l);
+		lua_pushstring(l, tls_error(ctx));
+		return 2;
+	} else {
+		luaL_addsize(&b, r);
+		luaL_pushresult(&b);
+		return 1;
+	}
 }
 
 static int
