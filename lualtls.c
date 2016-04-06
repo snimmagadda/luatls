@@ -141,6 +141,29 @@ l_connect(lua_State *l)
 }
 
 static int
+l_read(lua_State *l)
+{
+	struct tls	*ctx, **pctx;
+	luaL_Buffer	 b;
+	char		*p;
+	size_t		 bufsz;
+	int		 r;
+
+	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	ctx = *pctx;
+	bufsz = luaL_checkinteger(l, 2);
+	p = luaL_buffinitsize(l, &b, bufsz);
+	r = tls_read(ctx, p, bufsz);
+	luaL_addsize(&b, r);
+	lua_pushinteger(l, r);
+	luaL_pushresult(&b);
+	if (r == -1)
+		lua_pushstring(l, tls_error(ctx));
+
+	return r != -1 ? 2 : 3;
+}
+
+static int
 l_close(lua_State *l)
 {
 	struct tls	*ctx, **pctx;
@@ -187,6 +210,7 @@ luaopen_ltls(lua_State *l)
 	struct luaL_Reg context_methods[] = {
 		{"configure", l_configure},
 		{"connect", l_connect},
+		{"read", l_read},
 		{"close", l_close},
 		{"__gc", l_context_gc},
 		{NULL, NULL}
