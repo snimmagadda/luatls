@@ -34,7 +34,7 @@ l_config_new(lua_State *l)
 	if ((*config = tls_config_new()) == NULL)
 		return luaL_error(l, "ltls: failed to create a config");
 
-	/* do nothing when no params is passed as a table argument */
+	/* do nothing when no params are passed as a table argument */
 	if (lua_istable(l, 1) == 0)
 		return 1;
 
@@ -53,6 +53,7 @@ l_config_new(lua_State *l)
 		}
 	}
 	lua_pop(l, 1);
+	/* XXX todo rest of the config params */
 
 	return 1;
 }
