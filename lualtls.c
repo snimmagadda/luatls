@@ -49,10 +49,12 @@ l_set_ciphers(lua_State *l)
 	ciphers = luaL_checkstring(l, 2);
 	r = tls_config_set_ciphers(config, ciphers);
 	lua_pushboolean(l, r == 0);
-	if (r)
+	if (r) {
 		lua_pushstring(l, "ltls: failed to set ciphers");
+		return 2;
+	}
 
-	return r == 0 ? 1 : 2;
+	return 1;
 }
 
 static int
@@ -89,55 +91,29 @@ l_config_gc(lua_State *l)
 }
 
 static int
-l_client(lua_State *l)
+l_connect(lua_State *l)
 {
-	struct tls **ctx;
+	struct tls_config	 *config, **pc;
+	struct tls		**ctx;
+	const char		 *host, *port;
 
+	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	config = *pc;
+	host = luaL_checkstring(l, 2);
+	port = luaL_checkstring(l, 3);
 	ctx = lua_newuserdata(l, sizeof *ctx);
 	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
 	lua_setmetatable(l, -2);
 	if ((*ctx = tls_client()) == NULL)
 		return luaL_error(l, "ltls: failed to create client context");
 
+	if (tls_configure(*ctx, config) != 0)
+		return luaL_error(l, tls_error(*ctx));
+
+	if (tls_connect(*ctx, host, port) != 0)
+		return luaL_error(l, tls_error(*ctx));
+
 	return 1;
-}
-
-static int
-l_configure(lua_State *l)
-{
-	struct tls_config	*config, **pc;
-	struct tls		*ctx, **pctx;
-	int			 r;
-
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	pc = luaL_checkudata(l, 2, TLS_CONFIGHANDLE);
-	config = *pc;
-	ctx = *pctx;
-	r = tls_configure(ctx, config);
-	lua_pushboolean(l , r == 0);
-	if (r)
-		lua_pushstring(l, tls_error(ctx));
-
-	return r == 0 ? 1 : 2;
-}
-
-static int
-l_connect(lua_State *l)
-{
-	struct tls	*ctx, **pctx;
-	const char	*host, *port;
-	int		 r;
-
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	ctx = *pctx;
-	host = luaL_checkstring(l, 2);
-	port = luaL_checkstring(l, 3);
-	r = tls_connect(ctx, host, port);
-	lua_pushboolean(l, r == 0);
-	if (r)
-		lua_pushstring(l, tls_error(ctx));
-
-	return r == 0 ? 1 : 2;
 }
 
 static int
@@ -164,11 +140,11 @@ again:
 		lua_pushnil(l);
 		lua_pushstring(l, tls_error(ctx));
 		return 2;
-	} else {
-		luaL_addsize(&b, r);
-		luaL_pushresult(&b);
-		return 1;
 	}
+
+	luaL_addsize(&b, r);
+	luaL_pushresult(&b);
+	return 1;
 }
 
 static int
@@ -189,11 +165,14 @@ again:
 		goto again;	/* XXX just the blocking mode for now */
 	}
 
-	lua_pushboolean(l, r == 0);
-	if (r == -1)
+	if (r == -1) {
+		lua_pushnil(l);
 		lua_pushstring(l, tls_error(ctx));
-
-	return r == 0 ? 1 : 2;
+		return 2;
+	}
+	
+	lua_pop(l, 1); /* pop string arg; keep context and return */
+	return 1;
 }
 
 static int
@@ -206,10 +185,12 @@ l_close(lua_State *l)
 	ctx = *pctx;
 	r = tls_close(ctx);
 	lua_pushboolean(l, r == 0);
-	if (r)
+	if (r) {
 		lua_pushstring(l, tls_error(ctx));
+		return 2;
+	}
 
-	return r == 0 ? 1 : 2;
+	return 1;
 }
 
 static int
@@ -228,7 +209,7 @@ luaopen_ltls(lua_State *l)
 {
 	struct luaL_Reg ltls[] = {
 		{"config_new", l_config_new},
-		{"client", l_client},
+		{"connect", l_connect},
 		{NULL, NULL}
 	};
 
@@ -241,8 +222,6 @@ luaopen_ltls(lua_State *l)
 	};
 
 	struct luaL_Reg context_methods[] = {
-		{"configure", l_configure},
-		{"connect", l_connect},
 		{"read", l_read},
 		{"write", l_write},
 		{"close", l_close},
