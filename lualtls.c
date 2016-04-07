@@ -49,7 +49,6 @@ l_config_new(lua_State *l)
 	if (lua_istable(l, 1) == 0)
 		return 1;
 
-	/* handle the config params */
 	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING &&
 	    tls_config_set_ciphers(*config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set ciphers");
