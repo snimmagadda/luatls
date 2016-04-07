@@ -50,18 +50,16 @@ l_config_new(lua_State *l)
 		return 1;
 
 	/* handle the config params */
-	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING) {
-		if (tls_config_set_ciphers(*config, lua_tostring(l, -1)) != 0)
-			return luaL_error(l, "ltls: failed to set ciphers");
+	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING &&
+	    tls_config_set_ciphers(*config, lua_tostring(l, -1)))
+		return luaL_error(l, "ltls: failed to set ciphers");
 
-	}
 	lua_pop(l, 1);
 
-	if (lua_getfield(l, 1, "verify") == LUA_TBOOLEAN) {
-		if (lua_toboolean(l, -1) == 0) {
-			tls_config_insecure_noverifycert(*config);
-			tls_config_insecure_noverifyname(*config);
-		}
+	if (lua_getfield(l, 1, "verify") == LUA_TBOOLEAN &&
+	    lua_toboolean(l, -1) == 0) {
+		tls_config_insecure_noverifycert(*config);
+		tls_config_insecure_noverifyname(*config);
 	}
 	lua_pop(l, 1);
 	/* XXX todo rest of the config params */
