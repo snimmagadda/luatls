@@ -61,8 +61,20 @@ l_config_new(lua_State *l)
 		tls_config_insecure_noverifyname(*config);
 	}
 	lua_pop(l, 1);
-	/* XXX todo rest of the config params */
 
+	if (lua_getfield(l, 1, "cert") == LUA_TSTRING &&
+	    tls_config_set_cert_file(*config, lua_tostring(l, -1)))
+		return luaL_error(l, "ltls: failed to set cert file");
+
+	lua_pop(l, 1);
+
+	if (lua_getfield(l, 1, "key") == LUA_TSTRING &&
+	    tls_config_set_key_file(*config, lua_tostring(l, -1)))
+		return luaL_error(l, "ltls: failed to set key file");
+
+	lua_pop(l, 1);
+
+	/* XXX todo rest of the config params */
 	return 1;
 }
 
@@ -99,6 +111,33 @@ l_connect(lua_State *l)
 
 	if (tls_connect(*ctx, host, port) != 0)
 		return luaL_error(l, tls_error(*ctx));
+
+	return 1;
+}
+
+static int
+l_accept(lua_State *l)
+{
+	struct tls_config	*config, **pc;
+	struct tls		*tls, **ctx;
+	int			 s;
+
+	s = luaL_checkinteger(l, 1);
+	pc = ltlsL_optconfig(l, 2);
+	config = *pc;
+
+	if ((tls = tls_server()) == NULL)
+		return luaL_error(l, "ltls: failed to created server context");
+
+	if (tls_configure(tls, config) != 0)
+		return luaL_error(l, tls_error(tls));
+
+	ctx = lua_newuserdata(l, sizeof *ctx);
+	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
+	lua_setmetatable(l, -2);
+
+	if (tls_accept_socket(tls, ctx, s) != 0)
+		return luaL_error(l, tls_error(tls));
 
 	return 1;
 }
@@ -197,6 +236,7 @@ luaopen_ltls(lua_State *l)
 	struct luaL_Reg ltls[] = {
 		{"config_new", l_config_new},
 		{"connect", l_connect},
+		{"accept", l_accept},
 		{NULL, NULL}
 	};
 
