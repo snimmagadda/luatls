@@ -26,7 +26,7 @@
 static int
 l_config_new(lua_State *l)
 {
-	struct tls_config **config;
+	struct tls_config	**config;
 
 	config = lua_newuserdata(l, sizeof *config);
 	luaL_getmetatable(l, TLS_CONFIGHANDLE);
@@ -34,49 +34,27 @@ l_config_new(lua_State *l)
 	if ((*config = tls_config_new()) == NULL)
 		return luaL_error(l, "ltls: failed to create a config");
 
-	return 1;
-}
+	/* do nothing when no params is passed as a table argument */
+	if (lua_istable(l, 1) == 0)
+		return 1;
 
-static int
-l_set_ciphers(lua_State *l)
-{
-	struct tls_config	*config, **pc;
-	const char		*ciphers;
-	int			 r;
+	/* handle the config params */
+	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING) {
+		if (tls_config_set_ciphers(*config, lua_tostring(l, -1)) != 0)
+			return luaL_error(l, "ltls: failed to set ciphers");
 
-	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
-	config = *pc;
-	ciphers = luaL_checkstring(l, 2);
-	r = tls_config_set_ciphers(config, ciphers);
-	lua_pushboolean(l, r == 0);
-	if (r) {
-		lua_pushstring(l, "ltls: failed to set ciphers");
-		return 2;
 	}
+	lua_pop(l, 1);
+
+	if (lua_getfield(l, 1, "verify") == LUA_TBOOLEAN) {
+		if (lua_toboolean(l, -1) == 0) {
+			tls_config_insecure_noverifycert(*config);
+			tls_config_insecure_noverifyname(*config);
+		}
+	}
+	lua_pop(l, 1);
 
 	return 1;
-}
-
-static int
-l_noverifycert(lua_State *l)
-{
-	struct tls_config *config, **pc;
-
-	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
-	config = *pc;
-	tls_config_insecure_noverifycert(config);
-	return 0;
-}
-
-static int
-l_noverifyname(lua_State *l)
-{
-	struct tls_config *config, **pc;
-
-	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
-	config = *pc;
-	tls_config_insecure_noverifyname(config);
-	return 0;
 }
 
 static int
@@ -97,10 +75,10 @@ l_connect(lua_State *l)
 	struct tls		**ctx;
 	const char		 *host, *port;
 
-	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
+	host = luaL_checkstring(l, 1);
+	port = luaL_checkstring(l, 2);
+	pc = luaL_checkudata(l, 3, TLS_CONFIGHANDLE);
 	config = *pc;
-	host = luaL_checkstring(l, 2);
-	port = luaL_checkstring(l, 3);
 	ctx = lua_newuserdata(l, sizeof *ctx);
 	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
 	lua_setmetatable(l, -2);
@@ -214,9 +192,6 @@ luaopen_ltls(lua_State *l)
 	};
 
 	struct luaL_Reg config_methods[] = {
-		{"set_ciphers", l_set_ciphers},
-		{"noverifycert", l_noverifycert},
-		{"noverifyname", l_noverifyname},
 		{"__gc", l_config_gc},
 		{NULL, NULL}
 	};
