@@ -74,6 +74,12 @@ l_config_new(lua_State *l)
 
 	lua_pop(l, 1);
 
+	if (lua_getfield(l, 1, "ca") == LUA_TSTRING &&
+	    tls_config_set_ca_file(*config, lua_tostring(l, -1)))
+		return luaL_error(l, "ltls: failed to set ca file");
+
+	lua_pop(l, 1);
+
 	/* XXX todo rest of the config params */
 	return 1;
 }

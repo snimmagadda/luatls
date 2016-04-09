@@ -1,7 +1,6 @@
 local net = require("net")
 local tls = require("ltls")
 
-
 function tls_assert(f)
 ::again::
 	v, r = assert(f)
@@ -13,9 +12,9 @@ function tls_assert(f)
 end
 
 local t = {
-	["verify"] = false,
 	["cert"] = "/home/sunil/lualtls/obj/server.crt",
-	["key"] = "/home/sunil/lualtls/obj/server.key"
+	["key"] = "/home/sunil/lualtls/obj/server.key",
+	["ca"] = "/home/sunil/lualtls/obj/ca.crt"
 };
 local config = assert(tls.config_new(t))
 local s = assert(net.bind("localhost", "1234"))
