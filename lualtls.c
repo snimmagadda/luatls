@@ -166,16 +166,16 @@ l_read(lua_State *l)
 		lua_pushnil(l);
 		lua_pushstring(l, tls_error(ctx));
 		return 2;
-	} else {
-		if (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT)
-			luaL_addsize(&b, 0);
-		else
-			luaL_addsize(&b, r);
-
-		luaL_pushresult(&b);
-		lua_pushinteger(l, r);
-		return 2;
 	}
+
+	if (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT)
+		luaL_addsize(&b, 0);
+	else
+		luaL_addsize(&b, r);
+
+	luaL_pushresult(&b);
+	lua_pushinteger(l, r);
+	return 2;
 }
 
 static int
