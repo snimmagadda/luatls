@@ -1,22 +1,18 @@
 local tls = require("ltls")
 
-local host = "localhost"
-local port = "1234"
+function tls_assert(f)
+::again::
+	v, r = assert(f)
+	if r == tls.WANT_POLLIN or err == tls.WANT_POLLOUT then
+		goto again
+	else
+		return v
+	end
+end
 
 local config = assert(tls.config_new({["verify"] = false}))
-local ctx = assert(tls.connect(host, port, config))
-assert(ctx:write("hello world"))
-local buf = assert(ctx:read(1024))
+local ctx = assert(tls.connect("localhost", "1234", config))
+tls_assert(ctx:write("hello world"))
+local buf = tls_assert(ctx:read(1024))
 io.write(buf)
 assert(ctx:close())
-
---[[
-Alternatively, config param is optional which would make ltls to
-create a new default config and apply to the context.
-local tls = require("ltls")
-local ctx = tls.connect("localhost", "port")
-assert(ctx:write("hello world")
-local buf = assert(ctx:read(1024))
-io.write(buf)
-assert(ctx:close())
-]]

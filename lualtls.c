@@ -155,22 +155,21 @@ l_read(lua_State *l)
 	ctx = *pctx;
 	bufsz = luaL_checkinteger(l, 2);
 	p = luaL_buffinitsize(l, &b, bufsz);
-again:
-	switch ((r = tls_read(ctx, p, bufsz))) {
-	case TLS_WANT_POLLIN:
-	case TLS_WANT_POLLOUT:
-		goto again;	/* XXX just the blocking mode for now */
-	}
-
+	r = tls_read(ctx, p, bufsz);
 	if (r == -1) {
 		lua_pushnil(l);
 		lua_pushstring(l, tls_error(ctx));
 		return 2;
-	}
+	} else {
+		if (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT)
+			luaL_addsize(&b, 0);
+		else
+			luaL_addsize(&b, r);
 
-	luaL_addsize(&b, r);
-	luaL_pushresult(&b);
-	return 1;
+		luaL_pushresult(&b);
+		lua_pushinteger(l, r);
+		return 2;
+	}
 }
 
 static int
@@ -184,21 +183,14 @@ l_write(lua_State *l)
 	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	ctx = *pctx;
 	b = luaL_checklstring(l, 2, &len);
-again:
-	switch ((r = tls_write(ctx, b, len))) {
-	case TLS_WANT_POLLIN:
-	case TLS_WANT_POLLOUT:
-		goto again;	/* XXX just the blocking mode for now */
-	}
-
-	if (r == -1) {
-		lua_pushnil(l);
+	lua_pop(l, 1);
+	r = tls_write(ctx, b, len);
+	if (r == -1)
 		lua_pushstring(l, tls_error(ctx));
-		return 2;
-	}
-	
-	lua_pop(l, 1); /* pop string arg; keep context and return */
-	return 1;
+	else
+		lua_pushinteger(l, r);
+
+	return 2;
 }
 
 static int
@@ -239,12 +231,10 @@ luaopen_ltls(lua_State *l)
 		{"accept", l_accept},
 		{NULL, NULL}
 	};
-
 	struct luaL_Reg config_methods[] = {
 		{"__gc", l_config_gc},
 		{NULL, NULL}
 	};
-
 	struct luaL_Reg context_methods[] = {
 		{"read", l_read},
 		{"write", l_write},
@@ -252,6 +242,15 @@ luaopen_ltls(lua_State *l)
 		{"__gc", l_context_gc},
 		{NULL, NULL}
 	};
+	struct {
+		const char	*name;
+		int		 value;
+	} ltls_constants[] = {
+		{"WANT_POLLIN", TLS_WANT_POLLIN},
+		{"WANT_POLLOUT", TLS_WANT_POLLOUT},
+		{NULL, 0}
+	};
+	int i;
 
 	if (tls_init() != 0)
 		return luaL_error(l, "ltls: failed to initialize library");
@@ -271,6 +270,11 @@ luaopen_ltls(lua_State *l)
 	lua_setfield(l, -2, "__index");
 	luaL_setfuncs(l, context_methods, 0);
 	lua_pop(l, 1);
+
+	for (i = 0; ltls_constants[i].name != NULL; i++) {
+		lua_pushinteger(l, ltls_constants[i].value);
+		lua_setfield(l, -2, ltls_constants[i].name);
+	}
 
 	return 1;
 }
