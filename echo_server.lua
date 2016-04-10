@@ -1,6 +1,7 @@
 local net = require("net")
 local tls = require("ltls")
 local unix = require("unix")
+local aux = require("tlsaux")
 
 local t = {
 	["cert"] = "/home/sunil/lualtls/obj/server.crt",
@@ -14,17 +15,9 @@ while true do
 	local s2 = s:accept()
 	ctx = assert(tls.accept(s2:socket(), config))
 	if unix.fork() == 0 then
-		::read_again::
-		buf, r = assert(ctx:read(1024))
-		if r == tls.WANT_POLLIN or r == tls.WANT_POLLOUT then
-			goto read_again
-		end
+		buf = aux.read(ctx, 1024)
 		io.write(buf)
-		::write_again::
-		_, r = assert(ctx:write(buf))
-		if r == tls.WANT_POLLIN or r == tls.WANT_POLLOUT then
-			goto write_again
-		end
+		aux.write(ctx, buf)
 		assert(ctx:close())
 		s2:close()
 		os.exit(0)
@@ -32,4 +25,3 @@ while true do
 		s2:close()
 	end
 end
-s:close()

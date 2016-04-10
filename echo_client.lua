@@ -1,4 +1,5 @@
 local tls = require("ltls")
+local aux = require("tlsaux")
 
 local t = {
 	["cert"] = "/home/sunil/lualtls/obj/server.crt",
@@ -7,18 +8,7 @@ local t = {
 };
 local config = assert(tls.config_new(t))
 local ctx = assert(tls.connect("localhost", "1234", config));
-
-::write_again::
-_, r = assert(ctx:write("hello world"))
-if r == tls.WANT_POLLIN or r == tls.WANT_POLLOUT then
-	goto write_again
-end
-
-::read_again::
-local buf, r = assert(ctx:read(1024))
-if r == tls.WANT_POLLIN or r == tls.WANT_POLLOUT then
-	goto read_again
-end
-
+aux.write(ctx, "hello world")
+buf = aux.read(ctx, 1024)
 io.write(buf)
 assert(ctx:close())
