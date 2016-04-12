@@ -38,6 +38,7 @@ static int
 l_config_new(lua_State *l)
 {
 	struct tls_config	**config;
+	uint32_t		  protocols;
 
 	config = lua_newuserdata(l, sizeof *config);
 	luaL_getmetatable(l, TLS_CONFIGHANDLE);
@@ -77,6 +78,20 @@ l_config_new(lua_State *l)
 	if (lua_getfield(l, 1, "ca") == LUA_TSTRING &&
 	    tls_config_set_ca_file(*config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set ca file");
+
+	lua_pop(l, 1);
+
+	if (lua_getfield(l, 1, "verify_depth") == LUA_TNUMBER)
+	    tls_config_set_verify_depth(*config, lua_tointeger(l, -1));
+
+	lua_pop(l, 1);
+
+	if (lua_getfield(l, 1, "protocols") == LUA_TSTRING) {
+		if (tls_config_parse_protocols(&protocols, lua_tostring(l, -1)))
+			return luaL_error(l, "ltls: failed to parse protocols");
+
+		tls_config_set_protocols(*config, protocols);
+	}
 
 	lua_pop(l, 1);
 
