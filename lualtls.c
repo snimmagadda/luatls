@@ -81,7 +81,7 @@ l_config_new(lua_State *l)
 
 	lua_pop(l, 1);
 
-	if (lua_getfield(l, 1, "verify_depth") == LUA_TNUMBER)
+	if (lua_getfield(l, 1, "depth") == LUA_TNUMBER)
 	    tls_config_set_verify_depth(*config, lua_tointeger(l, -1));
 
 	lua_pop(l, 1);
