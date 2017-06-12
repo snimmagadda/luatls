@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Sunil Nimmagadda <sunil@openbsd.org>
+ * Copyright (c) 2016 Sunil Nimmagadda <sunil@nimmagadda.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -90,16 +90,6 @@ l_config_new(lua_State *l)
 
 	lua_pop(l, 1);
 	return 1;
-}
-
-static int
-l_config_gc(lua_State *l)
-{
-	struct tls_config *config;
-
-	config = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
-	tls_config_free(config);
-	return 0;
 }
 
 static int
@@ -228,6 +218,7 @@ l_context_gc(lua_State *l)
 
 	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	ctx = *pctx;
+	tls_close(ctx);
 	tls_free(ctx);
 	return 0;
 }
@@ -239,10 +230,6 @@ luaopen_ltls(lua_State *l)
 		{"config_new", l_config_new},
 		{"connect", l_connect},
 		{"accept", l_accept},
-		{NULL, NULL}
-	};
-	struct luaL_Reg config_methods[] = {
-		{"__gc", l_config_gc},
 		{NULL, NULL}
 	};
 	struct luaL_Reg context_methods[] = {
@@ -266,12 +253,6 @@ luaopen_ltls(lua_State *l)
 		return luaL_error(l, "ltls: failed to initialize library");
 
 	luaL_newlib(l, ltls);
-	luaL_newmetatable(l, TLS_CONFIGHANDLE);
-	lua_pushvalue(l, -1);
-	lua_setfield(l, -2, "__index");
-	luaL_setfuncs(l, config_methods, 0);
-	lua_pop(l, 1);
-
 	luaL_newmetatable(l, TLS_CONTEXTHANDLE);
 	lua_pushvalue(l, -1);
 	lua_setfield(l, -2, "__index");
