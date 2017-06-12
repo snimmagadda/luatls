@@ -63,6 +63,12 @@ l_config_new(lua_State *l)
 	}
 	lua_pop(l, 1);
 
+	if (lua_getfield(l, 1, "muststaple") == LUA_TBOOLEAN &&
+	    lua_toboolean(l, -1) == 1)
+		tls_config_ocsp_require_stapling(*config);
+
+	lua_pop(l, 1);
+
 	if (lua_getfield(l, 1, "cert") == LUA_TSTRING &&
 	    tls_config_set_cert_file(*config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set cert file");
@@ -94,8 +100,6 @@ l_config_new(lua_State *l)
 	}
 
 	lua_pop(l, 1);
-
-	/* XXX todo rest of the config params */
 	return 1;
 }
 
