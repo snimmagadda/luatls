@@ -218,7 +218,6 @@ l_context_gc(lua_State *l)
 
 	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	ctx = *pctx;
-	tls_close(ctx);
 	tls_free(ctx);
 	return 0;
 }
