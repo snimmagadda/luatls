@@ -23,17 +23,6 @@
 #define TLS_CONFIGHANDLE	"TLS config"
 #define	TLS_CONTEXTHANDLE	"TLS context"
 
-static struct tls_config *default_config;
-
-static struct tls_config **
-ltlsL_optconfig(lua_State *l, int arg)
-{
-	if (lua_isnoneornil(l, arg))
-		return &default_config;
-
-	return luaL_checkudata(l, arg, TLS_CONFIGHANDLE);
-}
-
 static int
 l_config_new(lua_State *l)
 {
@@ -106,10 +95,9 @@ l_config_new(lua_State *l)
 static int
 l_config_gc(lua_State *l)
 {
-	struct tls_config *config, **pc;
+	struct tls_config *config;
 
-	pc = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
-	config = *pc;
+	config = luaL_checkudata(l, 1, TLS_CONFIGHANDLE);
 	tls_config_free(config);
 	return 0;
 }
@@ -117,14 +105,13 @@ l_config_gc(lua_State *l)
 static int
 l_connect(lua_State *l)
 {
-	struct tls_config	 *config, **pc;
+	struct tls_config	 *config;
 	struct tls		**ctx;
 	const char		 *host, *port;
 
 	host = luaL_checkstring(l, 1);
 	port = luaL_checkstring(l, 2);
-	pc = ltlsL_optconfig(l, 3);
-	config = *pc;
+	config = luaL_checkudata(l, 3, TLS_CONFIGHANDLE);
 	ctx = lua_newuserdata(l, sizeof *ctx);
 	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
 	lua_setmetatable(l, -2);
@@ -143,14 +130,12 @@ l_connect(lua_State *l)
 static int
 l_accept(lua_State *l)
 {
-	struct tls_config	*config, **pc;
+	struct tls_config	*config;
 	struct tls		*tls, **ctx;
 	int			 s;
 
 	s = luaL_checkinteger(l, 1);
-	pc = ltlsL_optconfig(l, 2);
-	config = *pc;
-
+	config = luaL_checkudata(l, 2, TLS_CONFIGHANDLE);
 	if ((tls = tls_server()) == NULL)
 		return luaL_error(l, "ltls: failed to created server context");
 
@@ -279,9 +264,6 @@ luaopen_ltls(lua_State *l)
 
 	if (tls_init() != 0)
 		return luaL_error(l, "ltls: failed to initialize library");
-
-	if ((default_config = tls_config_new()) == NULL)
-		return luaL_error(l, "ltls: failed to create default config");
 
 	luaL_newlib(l, ltls);
 	luaL_newmetatable(l, TLS_CONFIGHANDLE);
