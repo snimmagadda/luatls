@@ -184,6 +184,7 @@ l_write(lua_State *l)
 	ctx = *pctx;
 	b = luaL_checklstring(l, 2, &len);
 	lua_pop(l, 1);
+	/* XXX WANT_POLL */
 	r = tls_write(ctx, b, len);
 	if (r == -1)
 		lua_pushstring(l, tls_error(ctx));
@@ -201,6 +202,7 @@ l_close(lua_State *l)
 
 	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	ctx = *pctx;
+	/* XXX WANT_POLL */
 	r = tls_close(ctx);
 	lua_pushboolean(l, r == 0);
 	if (r) {
