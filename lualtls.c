@@ -37,7 +37,7 @@ l_config_new(lua_State *l)
 
 	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING &&
 	    tls_config_set_ciphers(config, lua_tostring(l, -1)))
-		return luaL_error(l, "ltls: failed to set ciphers");
+		return luaL_error(l, tls_config_error(config));
 
 	lua_pop(l, 1);
 
@@ -56,19 +56,19 @@ l_config_new(lua_State *l)
 
 	if (lua_getfield(l, 1, "cert") == LUA_TSTRING &&
 	    tls_config_set_cert_file(config, lua_tostring(l, -1)))
-		return luaL_error(l, "ltls: failed to set cert file");
+		return luaL_error(l, tls_config_error(config));
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "key") == LUA_TSTRING &&
 	    tls_config_set_key_file(config, lua_tostring(l, -1)))
-		return luaL_error(l, "ltls: failed to set key file");
+		return luaL_error(l, tls_config_error(config));
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "ca") == LUA_TSTRING &&
 	    tls_config_set_ca_file(config, lua_tostring(l, -1)))
-		return luaL_error(l, "ltls: failed to set ca file");
+		return luaL_error(l, tls_config_error(config));
 
 	lua_pop(l, 1);
 
@@ -79,7 +79,7 @@ l_config_new(lua_State *l)
 
 	if (lua_getfield(l, 1, "protocols") == LUA_TSTRING) {
 		if (tls_config_parse_protocols(&protocols, lua_tostring(l, -1)))
-			return luaL_error(l, "ltls: failed to parse protocols");
+			return luaL_error(l, tls_config_error(config));
 
 		tls_config_set_protocols(config, protocols);
 	}
