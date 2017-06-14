@@ -29,7 +29,7 @@ l_config_new(lua_State *L)
 	uint32_t		 protocols;
 
 	if ((config = tls_config_new()) == NULL)
-		return luaL_error(L, "ltls: failed to create a config");
+		return luaL_error(L, "config_new: config creation failed");
 
 	lua_pushlightuserdata(L, config);
 	if (lua_istable(L, 1) == 0)
@@ -98,14 +98,14 @@ l_connect(lua_State *L)
 	host = luaL_checkstring(L, 1);
 	port = luaL_checkstring(L, 2);
 	if (lua_islightuserdata(L, 3) == 0)
-		return luaL_error(L, "ltls: third argument should be config");
+		return luaL_error(L, "connect: arg #3 config expected");
 
 	config = lua_touserdata(L, 3);
 	ctx = lua_newuserdata(L, sizeof *ctx);
 	luaL_getmetatable(L, TLS_CONTEXTHANDLE);
 	lua_setmetatable(L, -2);
 	if ((*ctx = tls_client()) == NULL)
-		return luaL_error(L, "ltls: failed to create client context");
+		return luaL_error(L, "connect: context creation failed");
 
 	if (tls_configure(*ctx, config) != 0)
 		return luaL_error(L, tls_error(*ctx));
@@ -117,23 +117,41 @@ l_connect(lua_State *L)
 }
 
 static int
+l_server(lua_State *L)
+{
+	struct tls		*tls;
+	struct tls_config	*config;
+
+	if ((tls = tls_server()) == NULL)
+		return luaL_error(L, "server: context creation failed");
+
+	if (lua_islightuserdata(L, 1) == 0)
+		return luaL_error(L, "server: arg #1 config expected");
+
+	config = lua_touserdata(L, 1);
+	if (tls_configure(tls, config) != 0)
+		return luaL_error(L, tls_error(tls));
+
+	lua_pushlightuserdata(L, tls);
+	return 1;
+}
+
+static int
 l_accept(lua_State *L)
 {
-	struct tls_config	*config;
-	struct tls		*tls, **ctx;
+	struct tls		**ctx, *tls;
+	struct tls_config	 *config;
 	int			 s;
 
 	s = luaL_checkinteger(L, 1);
 	if (lua_islightuserdata(L, 2) == 0)
-		return luaL_error(L, "ltls: second argument should be config");
+		return luaL_error(L, "accept: arg #2 server context expected");
 
-	config = lua_touserdata(L, 2);
-	if ((tls = tls_server()) == NULL)
-		return luaL_error(L, "ltls: failed to created server context");
+	tls = lua_touserdata(L, 2);
+	if (lua_islightuserdata(L, 3) == 0)
+		return luaL_error(L, "accept: arg #3 config expected");
 
-	if (tls_configure(tls, config) != 0)
-		return luaL_error(L, tls_error(tls));
-
+	config = lua_touserdata(L, 3);
 	ctx = lua_newuserdata(L, sizeof *ctx);
 	luaL_getmetatable(L, TLS_CONTEXTHANDLE);
 	lua_setmetatable(L, -2);
@@ -228,6 +246,7 @@ luaopen_ltls(lua_State *L)
 	struct luaL_Reg ltls[] = {
 		{"config_new", l_config_new},
 		{"connect", l_connect},
+		{"server", l_server},
 		{"accept", l_accept},
 		{NULL, NULL}
 	};
