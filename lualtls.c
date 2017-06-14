@@ -20,7 +20,6 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#define TLS_CONFIGHANDLE	"TLS config"
 #define	TLS_CONTEXTHANDLE	"TLS context"
 
 static int
@@ -33,8 +32,6 @@ l_config_new(lua_State *l)
 		return luaL_error(l, "ltls: failed to create a config");
 
 	lua_pushlightuserdata(l, config);
-	luaL_getmetatable(l, TLS_CONFIGHANDLE);
-	lua_setmetatable(l, -2);
 
 	/* do nothing when no params are passed as a table argument */
 	if (lua_istable(l, 1) == 0)
@@ -102,7 +99,10 @@ l_connect(lua_State *l)
 
 	host = luaL_checkstring(l, 1);
 	port = luaL_checkstring(l, 2);
-	config = luaL_checkudata(l, 3, TLS_CONFIGHANDLE);
+	if (lua_islightuserdata(l, 3) == 0)
+		return luaL_error(l, "ltls: third argument should be config");
+
+	config = lua_touserdata(l, 3);
 	ctx = lua_newuserdata(l, sizeof *ctx);
 	luaL_getmetatable(l, TLS_CONTEXTHANDLE);
 	lua_setmetatable(l, -2);
@@ -126,7 +126,10 @@ l_accept(lua_State *l)
 	int			 s;
 
 	s = luaL_checkinteger(l, 1);
-	config = luaL_checkudata(l, 2, TLS_CONFIGHANDLE);
+	if (lua_islightuserdata(l, 2) == 0)
+		return luaL_error(l, "ltls: third argument should be config");
+
+	config = lua_touserdata(l, 2);
 	if ((tls = tls_server()) == NULL)
 		return luaL_error(l, "ltls: failed to created server context");
 
@@ -253,8 +256,6 @@ luaopen_ltls(lua_State *l)
 		return luaL_error(l, "ltls: failed to initialize library");
 
 	luaL_newlib(l, ltls);
-	luaL_newmetatable(l, TLS_CONFIGHANDLE);
-	lua_pop(l, 1);
 	luaL_newmetatable(l, TLS_CONTEXTHANDLE);
 	lua_pushvalue(l, -1);
 	lua_setfield(l, -2, "__index");
