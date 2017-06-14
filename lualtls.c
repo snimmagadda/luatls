@@ -32,8 +32,6 @@ l_config_new(lua_State *l)
 		return luaL_error(l, "ltls: failed to create a config");
 
 	lua_pushlightuserdata(l, config);
-
-	/* do nothing when no params are passed as a table argument */
 	if (lua_istable(l, 1) == 0)
 		return 1;
 
