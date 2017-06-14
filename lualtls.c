@@ -176,23 +176,22 @@ l_read(lua_State *l)
 static int
 l_write(lua_State *l)
 {
-	struct tls	*ctx, **pctx;
-	const char	*b;
-	size_t		 len;
-	int		 r;
+	struct tls	**ctx;
+	const char	 *b;
+	size_t		  len;
+	int		  r;
 
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	ctx = *pctx;
+	ctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	b = luaL_checklstring(l, 2, &len);
 	lua_pop(l, 1);
-	/* XXX WANT_POLL */
-	r = tls_write(ctx, b, len);
-	if (r == -1)
-		lua_pushstring(l, tls_error(ctx));
-	else
-		lua_pushinteger(l, r);
+	r = tls_write(*ctx, b, len);
+	lua_pushinteger(l, r);
+	if (r == -1) {
+		lua_pushstring(l, tls_error(*ctx));
+		return 2;
+	}
 
-	return 2;
+	return 1;
 }
 
 static int
