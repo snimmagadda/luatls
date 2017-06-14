@@ -159,8 +159,9 @@ l_read(lua_State *l)
 	r = tls_read(*ctx, p, bufsz);
 	if (r == -1) {
 		lua_pushnil(l);
+		lua_pushinteger(l, r);
 		lua_pushstring(l, tls_error(*ctx));
-		return 2;
+		return 3;
 	}
 
 	if (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT)
