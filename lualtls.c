@@ -198,16 +198,14 @@ l_write(lua_State *l)
 static int
 l_close(lua_State *l)
 {
-	struct tls	*ctx, **pctx;
-	int		 r;
+	struct tls	**ctx;
+	int		  r;
 
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	ctx = *pctx;
-	/* XXX WANT_POLL */
-	r = tls_close(ctx);
-	lua_pushboolean(l, r == 0);
-	if (r) {
-		lua_pushstring(l, tls_error(ctx));
+	ctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	r = tls_close(*ctx);
+	lua_pushinteger(l, r);
+	if (r == -1) {
+		lua_pushstring(l, tls_error(*ctx));
 		return 2;
 	}
 
