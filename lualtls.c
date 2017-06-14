@@ -26,58 +26,59 @@
 static int
 l_config_new(lua_State *l)
 {
-	struct tls_config	**config;
-	uint32_t		  protocols;
+	struct tls_config	*config;
+	uint32_t		 protocols;
 
-	config = lua_newuserdata(l, sizeof *config);
+	if ((config = tls_config_new()) == NULL)
+		return luaL_error(l, "ltls: failed to create a config");
+
+	lua_pushlightuserdata(l, config);
 	luaL_getmetatable(l, TLS_CONFIGHANDLE);
 	lua_setmetatable(l, -2);
-	if ((*config = tls_config_new()) == NULL)
-		return luaL_error(l, "ltls: failed to create a config");
 
 	/* do nothing when no params are passed as a table argument */
 	if (lua_istable(l, 1) == 0)
 		return 1;
 
 	if (lua_getfield(l, 1, "ciphers") == LUA_TSTRING &&
-	    tls_config_set_ciphers(*config, lua_tostring(l, -1)))
+	    tls_config_set_ciphers(config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set ciphers");
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "verify") == LUA_TBOOLEAN &&
 	    lua_toboolean(l, -1) == 0) {
-		tls_config_insecure_noverifycert(*config);
-		tls_config_insecure_noverifyname(*config);
+		tls_config_insecure_noverifycert(config);
+		tls_config_insecure_noverifyname(config);
 	}
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "muststaple") == LUA_TBOOLEAN &&
 	    lua_toboolean(l, -1) == 1)
-		tls_config_ocsp_require_stapling(*config);
+		tls_config_ocsp_require_stapling(config);
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "cert") == LUA_TSTRING &&
-	    tls_config_set_cert_file(*config, lua_tostring(l, -1)))
+	    tls_config_set_cert_file(config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set cert file");
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "key") == LUA_TSTRING &&
-	    tls_config_set_key_file(*config, lua_tostring(l, -1)))
+	    tls_config_set_key_file(config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set key file");
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "ca") == LUA_TSTRING &&
-	    tls_config_set_ca_file(*config, lua_tostring(l, -1)))
+	    tls_config_set_ca_file(config, lua_tostring(l, -1)))
 		return luaL_error(l, "ltls: failed to set ca file");
 
 	lua_pop(l, 1);
 
 	if (lua_getfield(l, 1, "depth") == LUA_TNUMBER)
-	    tls_config_set_verify_depth(*config, lua_tointeger(l, -1));
+	    tls_config_set_verify_depth(config, lua_tointeger(l, -1));
 
 	lua_pop(l, 1);
 
@@ -85,7 +86,7 @@ l_config_new(lua_State *l)
 		if (tls_config_parse_protocols(&protocols, lua_tostring(l, -1)))
 			return luaL_error(l, "ltls: failed to parse protocols");
 
-		tls_config_set_protocols(*config, protocols);
+		tls_config_set_protocols(config, protocols);
 	}
 
 	lua_pop(l, 1);
@@ -95,8 +96,8 @@ l_config_new(lua_State *l)
 static int
 l_connect(lua_State *l)
 {
-	struct tls_config	**config;
 	struct tls		**ctx;
+	struct tls_config	 *config;
 	const char		 *host, *port;
 
 	host = luaL_checkstring(l, 1);
@@ -108,7 +109,7 @@ l_connect(lua_State *l)
 	if ((*ctx = tls_client()) == NULL)
 		return luaL_error(l, "ltls: failed to create client context");
 
-	if (tls_configure(*ctx, *config) != 0)
+	if (tls_configure(*ctx, config) != 0)
 		return luaL_error(l, tls_error(*ctx));
 
 	if (tls_connect(*ctx, host, port) != 0)
