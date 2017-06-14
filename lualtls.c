@@ -268,7 +268,7 @@ luaopen_ltls(lua_State *L)
 	int i;
 
 	if (tls_init() != 0)
-		return luaL_error(L, "ltls: failed to initialize library");
+		return luaL_error(L, "ltls: library initialization failed");
 
 	luaL_newlib(L, ltls);
 	luaL_newmetatable(L, TLS_CONTEXTHANDLE);
