@@ -63,11 +63,12 @@ l_config_new(lua_State *L)
 	if (lua_getfield(L, 1, "depth") == LUA_TNUMBER)
 	    tls_config_set_verify_depth(config, lua_tointeger(L, -1));
 
-	if (lua_getfield(L, 1, "protocols") == LUA_TSTRING &&
-	    tls_config_parse_protocols(&protocols, lua_tostring(L, -1)))
-		return luaL_error(L, "config_new: invalid procotols value");
+	if (lua_getfield(L, 1, "protocols") == LUA_TSTRING) {
+		if (tls_config_parse_protocols(&protocols, lua_tostring(L, -1)))
+			return luaL_error(L, "config_new: protocols invalid");
 
-	tls_config_set_protocols(config, protocols);
+		tls_config_set_protocols(config, protocols);
+	}
  end:
 	lua_pushlightuserdata(L, config);
 	return 1;
