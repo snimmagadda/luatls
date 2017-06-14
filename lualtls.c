@@ -95,7 +95,7 @@ l_config_new(lua_State *l)
 static int
 l_connect(lua_State *l)
 {
-	struct tls_config	 *config;
+	struct tls_config	**config;
 	struct tls		**ctx;
 	const char		 *host, *port;
 
@@ -108,7 +108,7 @@ l_connect(lua_State *l)
 	if ((*ctx = tls_client()) == NULL)
 		return luaL_error(l, "ltls: failed to create client context");
 
-	if (tls_configure(*ctx, config) != 0)
+	if (tls_configure(*ctx, *config) != 0)
 		return luaL_error(l, tls_error(*ctx));
 
 	if (tls_connect(*ctx, host, port) != 0)
