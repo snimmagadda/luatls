@@ -31,60 +31,45 @@ l_config_new(lua_State *L)
 	if ((config = tls_config_new()) == NULL)
 		return luaL_error(L, "config_new: config creation failed");
 
-	lua_pushlightuserdata(L, config);
 	if (lua_istable(L, 1) == 0)
-		return 1;
+		goto end;
 
 	if (lua_getfield(L, 1, "ciphers") == LUA_TSTRING &&
 	    tls_config_set_ciphers(config, lua_tostring(L, -1)))
 		return luaL_error(L, tls_config_error(config));
-
-	lua_pop(L, 1);
 
 	if (lua_getfield(L, 1, "verify") == LUA_TBOOLEAN &&
 	    lua_toboolean(L, -1) == 0) {
 		tls_config_insecure_noverifycert(config);
 		tls_config_insecure_noverifyname(config);
 	}
-	lua_pop(L, 1);
 
 	if (lua_getfield(L, 1, "muststaple") == LUA_TBOOLEAN &&
 	    lua_toboolean(L, -1) == 1)
 		tls_config_ocsp_require_stapling(config);
 
-	lua_pop(L, 1);
-
 	if (lua_getfield(L, 1, "cert") == LUA_TSTRING &&
 	    tls_config_set_cert_file(config, lua_tostring(L, -1)))
 		return luaL_error(L, tls_config_error(config));
-
-	lua_pop(L, 1);
 
 	if (lua_getfield(L, 1, "key") == LUA_TSTRING &&
 	    tls_config_set_key_file(config, lua_tostring(L, -1)))
 		return luaL_error(L, tls_config_error(config));
 
-	lua_pop(L, 1);
-
 	if (lua_getfield(L, 1, "ca") == LUA_TSTRING &&
 	    tls_config_set_ca_file(config, lua_tostring(L, -1)))
 		return luaL_error(L, tls_config_error(config));
 
-	lua_pop(L, 1);
-
 	if (lua_getfield(L, 1, "depth") == LUA_TNUMBER)
 	    tls_config_set_verify_depth(config, lua_tointeger(L, -1));
 
-	lua_pop(L, 1);
+	if (lua_getfield(L, 1, "protocols") == LUA_TSTRING &&
+	    tls_config_parse_protocols(&protocols, lua_tostring(L, -1)))
+		return luaL_error(L, "config_new: invalid procotols value");
 
-	if (lua_getfield(L, 1, "protocols") == LUA_TSTRING) {
-		if (tls_config_parse_protocols(&protocols, lua_tostring(L, -1)))
-			return luaL_error(L, tls_config_error(config));
-
-		tls_config_set_protocols(config, protocols);
-	}
-
-	lua_pop(L, 1);
+	tls_config_set_protocols(config, protocols);
+ end:
+	lua_pushlightuserdata(L, config);
 	return 1;
 }
 
