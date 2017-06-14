@@ -127,7 +127,7 @@ l_accept(lua_State *l)
 
 	s = luaL_checkinteger(l, 1);
 	if (lua_islightuserdata(l, 2) == 0)
-		return luaL_error(l, "ltls: third argument should be config");
+		return luaL_error(l, "ltls: second argument should be config");
 
 	config = lua_touserdata(l, 2);
 	if ((tls = tls_server()) == NULL)
