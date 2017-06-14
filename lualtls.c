@@ -202,7 +202,6 @@ l_write(lua_State *L)
 
 	ctx = luaL_checkudata(L, 1, TLS_CONTEXTHANDLE);
 	b = luaL_checklstring(L, 2, &len);
-	lua_pop(L, 1);
 	r = tls_write(*ctx, b, len);
 	lua_pushinteger(L, r);
 	if (r == -1) {
