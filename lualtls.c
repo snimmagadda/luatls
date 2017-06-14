@@ -145,20 +145,19 @@ l_accept(lua_State *l)
 static int
 l_read(lua_State *l)
 {
-	struct tls	*ctx, **pctx;
-	luaL_Buffer	 b;
-	char		*p;
-	size_t		 bufsz;
-	int		 r;
+	struct tls	**ctx;
+	luaL_Buffer	  b;
+	char		 *p;
+	size_t		  bufsz;
+	int		  r;
 
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	ctx = *pctx;
+	ctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
 	bufsz = luaL_checkinteger(l, 2);
 	p = luaL_buffinitsize(l, &b, bufsz);
-	r = tls_read(ctx, p, bufsz);
+	r = tls_read(*ctx, p, bufsz);
 	if (r == -1) {
 		lua_pushnil(l);
-		lua_pushstring(l, tls_error(ctx));
+		lua_pushstring(l, tls_error(*ctx));
 		return 2;
 	}
 
@@ -216,11 +215,10 @@ l_close(lua_State *l)
 static int
 l_context_gc(lua_State *l)
 {
-	struct tls *ctx, **pctx;
+	struct tls	**ctx;
 
-	pctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
-	ctx = *pctx;
-	tls_free(ctx);
+	ctx = luaL_checkudata(l, 1, TLS_CONTEXTHANDLE);
+	tls_free(*ctx);
 	return 0;
 }
 
