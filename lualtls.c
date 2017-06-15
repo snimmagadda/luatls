@@ -65,7 +65,7 @@ l_config_new(lua_State *L)
 
 	if (lua_getfield(L, 1, "protocols") == LUA_TSTRING) {
 		if (tls_config_parse_protocols(&protocols, lua_tostring(L, -1)))
-			return luaL_error(L, "config_new: protocols invalid");
+			return luaL_error(L, "config_new: invalid protocols");
 
 		tls_config_set_protocols(config, protocols);
 	}
