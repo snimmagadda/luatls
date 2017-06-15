@@ -1,10 +1,9 @@
-# Lua wrapper for libtls API (libressl).
+# Lua module for libtls API (libressl).
 
 This is a *work in progress* code, incomplete and non-portable.
-Tested only on OpenBSD with Lua-5.3.4.
+Slightly tested only on OpenBSD with Lua-5.3.4.
 
 ## Put these helper functions somewhere accessible.
-
 	local tls = require("ltls")
 
 	local function tls_write(ctx, data)
@@ -40,3 +39,32 @@ Tested only on OpenBSD with Lua-5.3.4.
 	io.write(buf)
 
 ## Echo Server:
+Using [luaunix](https://github.com/arcapos/luaunix) and
+[luanet](https://github.com/arcapos/luanet) modules...
+
+	local net = require("net")
+	local tls = require("ltls")
+	local unix = require("unix")
+
+	local t = {
+	   ["cert"] = "/etc/ssl/server.crt",
+	   ["key"] = "/etc/ssl/private/server.key"
+	}
+	local config = tls.config_new(t)
+	local s = net.bind("localhost", "12345")
+	unix.signal(unix.SIGINT, function() os.exit(0) end)
+	local ctx_server = tls.server(config)
+	while true do
+	   local s2 = s:accept()
+	   local ctx = tls.accept(s2:socket(), ctx_server, config)
+	   if unix.fork() == 0 then
+	      local buf = tls_read(ctx, 1024)
+	      io.write(buf)
+	      tls_write(ctx, buf)
+	      tls_close(ctx)
+	      s2:close()
+	      os.exit(0)
+	   else
+	      s2:close()
+	   end
+	end
