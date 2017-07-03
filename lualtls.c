@@ -75,6 +75,19 @@ l_config_new(lua_State *L)
 }
 
 static int
+l_config_free(lua_State *L)
+{
+	struct tls_config	*config;
+
+	if (lua_islightuserdata(L, 1) == 0)
+		return luaL_error(L, "config_free: arg #1 config expected");
+
+	config = lua_touserdata(L, 1);
+	tls_config_free(config);
+	return 0;
+}
+
+static int
 l_connect(lua_State *L)
 {
 	struct tls		**ctx;
@@ -230,6 +243,7 @@ luaopen_ltls(lua_State *L)
 {
 	struct luaL_Reg ltls[] = {
 		{"config_new", l_config_new},
+		{"config_free", l_config_free},
 		{"connect", l_connect},
 		{"server", l_server},
 		{"accept", l_accept},
