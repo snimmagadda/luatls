@@ -1,7 +1,7 @@
 # Lua module for libtls API (libressl).
 
-This is a *work in progress* code, incomplete and non-portable.
-Slightly tested only on OpenBSD with Lua-5.3.4.
+This is a *work in progress* code and incomplete.
+Slightly tested only with Lua-5.3.4.
 
 ## Put these helper functions somewhere accessible.
 	local tls = require("ltls")
